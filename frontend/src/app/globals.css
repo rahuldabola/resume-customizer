@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-image: radial-gradient(circle at top left, rgb(238 242 255 / 0.9), transparent 40rem);
+}

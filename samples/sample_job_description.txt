@@ -1,0 +1,30 @@
+Full Stack Engineer (AI Products) - Lumora Health, Gurugram (Hybrid)
+
+About the role
+Lumora Health builds AI-assisted tools that help clinics triage patient messages. We are looking for a Full Stack Engineer who can own features end to end - from a clean React/Next.js interface to Python APIs and LLM integrations.
+
+What you will do
+- Build responsive web interfaces with Next.js, React and TypeScript
+- Design and maintain REST APIs in Python (FastAPI) backed by PostgreSQL
+- Integrate LLM APIs (OpenAI, Gemini) including prompt engineering and output evaluation
+- Ship features end to end: design, implementation, testing, deployment and monitoring
+- Set up CI/CD pipelines and deploy services with Docker on AWS
+- Collaborate with product and design to turn requirements into shipped features
+
+Requirements
+- 2+ years of professional software engineering experience
+- Strong in Python and JavaScript/TypeScript
+- Experience with React or Next.js
+- Experience building REST APIs with FastAPI, Flask or Django
+- Solid SQL skills (PostgreSQL preferred)
+- Experience with Git, Docker and CI/CD
+- Hands-on experience integrating LLMs or other AI APIs
+
+Nice to have
+- Experience with Redis and background job queues
+- Familiarity with Kubernetes
+- Experience with vector databases / RAG
+- Mobile app experience (React Native)
+- Healthcare or HIPAA-compliant systems
+
+We value clear communication, ownership and a bias for action.
