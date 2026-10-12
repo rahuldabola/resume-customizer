@@ -8,7 +8,7 @@ import { ALL_SECTIONS, TONES, type SectionName, type Tone } from "@/lib/types";
 
 export const JD_MIN = 100;
 export const JD_MAX = 15000;
-export const MAX_FILE_MB = 5;
+export const MAX_FILE_MB = 4;
 const ACCEPTED = [".pdf", ".docx"];
 
 export function validateFile(file: File): string | null {

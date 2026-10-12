@@ -2,7 +2,7 @@
 
 Paste a job description, upload a resume (PDF or DOCX), and get a version of that resume tailored to the job: a rewritten summary, JD-matching skills first, experience bullets reordered and rephrased in the JD's language, a list of missing keywords, and a before/after match score. Download the result as PDF, DOCX or TXT, and generate a matching cover letter.
 
-**Live app:** https://resume-customizer-ai.vercel.app &nbsp;·&nbsp; **API:** https://resume-customizer-api-production.up.railway.app/api/health
+**Live app:** https://resume-customizer-ai.vercel.app &nbsp;·&nbsp; **API:** https://resume-customizer-api.vercel.app/api/health
 
 > No account needed. Click **Try with a sample** in the app to run it on a bundled fictional resume and JD.
 
@@ -10,7 +10,7 @@ Paste a job description, upload a resume (PDF or DOCX), and get a version of tha
 
 **Core**
 - Job description text area with validation (required, 100 to 15,000 characters, live counter).
-- PDF / DOCX upload by drag-and-drop or file picker; shows file name and size. Type, size (5 MB), empty-file, renamed-file (magic bytes) and scanned/image-only PDF checks on both client and server.
+- PDF / DOCX upload by drag-and-drop or file picker; shows file name and size. Type, size (4 MB, under Vercel's 4.5 MB request limit), empty-file, renamed-file (magic bytes) and scanned/image-only PDF checks on both client and server.
 - Text extraction on the backend (`pdfplumber` for PDF; `python-docx` for DOCX, including table-based templates).
 - LLM tailoring with Gemini: summary rewrite, skills reordering, experience/project bullets reordered and rephrased toward JD keywords, missing-keyword suggestions, and a "what changed and why" list.
 - Clean resume preview, and download as **PDF, DOCX or TXT**.
@@ -32,7 +32,7 @@ Paste a job description, upload a resume (PDF or DOCX), and get a version of tha
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, `diff`, `lucide-react` |
 | Backend | Python 3.11, FastAPI, Pydantic v2, `pdfplumber`, `python-docx`, `fpdf2` |
 | LLM | Google Gemini via the `google-genai` SDK: **`gemini-3.5-flash`** (primary), **`gemini-3.5-flash-lite`** (automatic fallback on 429/5xx) |
-| Hosting | Vercel (frontend), Railway (backend, Docker) |
+| Hosting | Vercel: Next.js frontend + FastAPI backend on the Python runtime (separate projects). A Dockerfile is included for Railway / Render / Cloud Run |
 | Quality | pytest (39 tests, LLM mocked), ruff, ESLint, `tsc`, GitHub Actions CI |
 
 ## Architecture
@@ -44,7 +44,7 @@ Paste a job description, upload a resume (PDF or DOCX), and get a version of tha
 │          cover letter (streamed) · versions/compare · download   │
 └───────────────┬──────────────────────────────────────────────────┘
                 │ REST (multipart / JSON / text stream), CORS-restricted
-┌───────────────▼──────────── FastAPI (Railway) ───────────────────┐
+┌───────────────▼──────────── FastAPI (Vercel Python) ─────────────┐
 │ POST /api/customize                                              │
 │   1. validate JD + file (type, magic bytes, size, text length)   │
 │   2. extract text (pdfplumber / python-docx)                     │
@@ -114,18 +114,20 @@ Docker (backend): `docker build -t resume-api backend && docker run -p 8000:8000
 | backend | `GEMINI_API_KEY` | Google AI Studio key (required) |
 | backend | `GEMINI_MODELS` | Comma-separated model list, tried in order (default `gemini-3.5-flash,gemini-3.5-flash-lite`) |
 | backend | `ALLOWED_ORIGINS` | Comma-separated CORS origins (the frontend URL) |
-| backend | `MAX_UPLOAD_MB`, `RATE_LIMIT_PER_10MIN`, `LLM_TIMEOUT_S` | Optional limits (5 MB, 12 requests / 10 min per IP, 90 s) |
+| backend | `MAX_UPLOAD_MB`, `RATE_LIMIT_PER_10MIN`, `LLM_TIMEOUT_S` | Optional limits (4 MB, 12 requests / 10 min per IP, 90 s) |
 | frontend | `NEXT_PUBLIC_API_URL` | Backend base URL |
 
 ## Deployment
 
-- **Backend → Railway**: Docker service built from `backend/Dockerfile` (installs DejaVu fonts so PDFs render any Unicode). Variables: `GEMINI_API_KEY`, `ALLOWED_ORIGINS`. Health check: `/api/health`.
-- **Frontend → Vercel**: root directory `frontend`, `NEXT_PUBLIC_API_URL` set to the Railway URL.
+- **Backend → Vercel (Python runtime)**: project root `backend/`; `index.py` exposes the FastAPI `app`, `vercel.json` raises the function timeout to 120 s. Env vars: `GEMINI_API_KEY`, `ALLOWED_ORIGINS`. Deploy with `cd backend && vercel deploy --prod`.
+- **Frontend → Vercel**: project root `frontend/`, `NEXT_PUBLIC_API_URL=https://resume-customizer-api.vercel.app`. Deploy with `cd frontend && vercel deploy --prod`.
+- **Alternative**: `backend/Dockerfile` runs the same API on Railway, Render or Cloud Run, and installs DejaVu fonts so exported PDFs support full Unicode.
 
 ## Project structure
 
 ```
 backend/
+  index.py           Vercel entrypoint (re-exports app.main:app)
   app/main.py        API routes, validation, rate limiting, CORS
   app/parsing.py     PDF/DOCX → text (magic-byte checks, tables, list bullets)
   app/prompts.py     system prompts and prompt builders
@@ -146,8 +148,10 @@ samples/             fictional sample resume + JD used by "Try with a sample" an
 - **Scanned (image-only) PDFs** are rejected with a clear message; there is no OCR.
 - **Layout is not preserved.** The download is a clean single-column ATS-friendly template, not the original design.
 - **The ATS score is a heuristic.** Real ATS products differ; the checklist shows exactly what is measured. The match score is keyword-based, so it doesn't capture semantic similarity.
+- **PDF fonts on Vercel.** The serverless runtime has no DejaVu font, so the PDF exporter falls back to Helvetica and transliterates non-Latin-1 characters (smart quotes, dashes). The Docker image has full Unicode; DOCX and TXT are always full Unicode.
+- **Rate limiting is per instance.** The in-memory limiter is best-effort on serverless, where several instances may run.
 - **No authentication or server-side storage.** By design, files are processed in memory and never stored; version history lives in the browser's localStorage only.
-- **Free-tier Gemini quota.** Under load the primary model can return 503/429. The app falls back to `gemini-3.5-flash-lite`, and the UI explains if both are busy. There's a per-IP rate limit (in memory, single instance).
+- **Free-tier Gemini quota.** Under load the primary model can return 503/429. The app falls back to `gemini-3.5-flash-lite`, and the UI explains if both are busy. There's a per-IP rate limit.
 - **Tailor output is not streamed.** The main result is structured JSON that must be validated and guarded before display, so the UI shows staged progress instead. The cover letter *is* streamed.
 - Education, certifications and other sections are not rewritten (only used as evidence), to avoid accidental changes to facts.
 

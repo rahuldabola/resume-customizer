@@ -21,9 +21,13 @@ class Settings:
     )
     llm_timeout_s: int = field(default_factory=lambda: int(os.getenv("LLM_TIMEOUT_S", "90")))
     allowed_origins: list[str] = field(default_factory=lambda: _csv("ALLOWED_ORIGINS", "http://localhost:3000"))
-    max_upload_mb: int = field(default_factory=lambda: int(os.getenv("MAX_UPLOAD_MB", "5")))
+    max_upload_mb: int = field(default_factory=lambda: int(os.getenv("MAX_UPLOAD_MB", "4")))
     rate_limit_per_10min: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_10MIN", "12")))
-    commit: str = field(default_factory=lambda: os.getenv("RAILWAY_GIT_COMMIT_SHA", "local")[:7])
+    commit: str = field(
+        default_factory=lambda: (os.getenv("VERCEL_GIT_COMMIT_SHA") or os.getenv("RAILWAY_GIT_COMMIT_SHA") or "local")[
+            :7
+        ]
+    )
 
 
 settings = Settings()

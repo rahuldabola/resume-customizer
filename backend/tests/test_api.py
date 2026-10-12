@@ -66,7 +66,7 @@ def test_customize_validation(client, sample_pdf, jd_text, file, status, message
 
 
 def test_rejects_large_files(client, sample_jd, monkeypatch):
-    big = b"%PDF" + b"0" * (5 * 1024 * 1024 + 10)
+    big = b"%PDF" + b"0" * (4 * 1024 * 1024 + 10)
     res = _post(client, sample_jd, ("resume.pdf", big, "application/pdf"))
     assert res.status_code == 413
 
